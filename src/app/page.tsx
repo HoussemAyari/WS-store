@@ -92,7 +92,7 @@ export default function LoginPage() {
                 />
                 <button
                   type="button"
-                  className="absolute right-2 top-2 h-11 rounded-xl px-3 font-semibold"
+                  className="absolute right-2 top-1 h-12 min-h-12 rounded-xl px-3 font-semibold"
                   onClick={() => setShowPassword((value) => !value)}
                 >
                   {showPassword ? "Masquer" : "Afficher"}
