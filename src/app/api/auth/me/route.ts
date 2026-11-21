@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { getAdminSupabase, getServerSession } from "@/lib/server-auth";
 
 export async function GET() {
+  await connection();
   const session = await getServerSession();
   if (!session?.profileId) return NextResponse.json({ erreur: "Connexion requise." }, { status: 401 });
 

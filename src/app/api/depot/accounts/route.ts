@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { z } from "zod";
 import { getActiveDepotProfile } from "@/lib/server-auth";
 
@@ -25,6 +25,7 @@ const actionSchema = z.discriminatedUnion("action", [
 ]);
 
 export async function GET() {
+  await connection();
   try {
     const auth = await getActiveDepotProfile();
     if (!auth) return NextResponse.json({ erreur: "Accès réservé au dépôt." }, { status: 403 });

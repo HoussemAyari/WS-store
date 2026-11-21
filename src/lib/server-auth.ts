@@ -32,3 +32,23 @@ export async function getActiveDepotProfile() {
   if (!data || !data.active || data.role !== "depot") return null;
   return { session, profileId: data.id, supabase };
 }
+
+export async function getActiveShopProfile() {
+  const session = await getServerSession();
+  if (!session || session.role !== "shop" || !session.profileId) return null;
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,role,active,shop_id,shops(name,active)")
+    .eq("id", session.profileId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Vérification du compte boutique impossible :", error.message);
+    throw new Error("La vérification du compte est temporairement indisponible.");
+  }
+  const shop = data?.shops as unknown as { name: string; active: boolean } | null;
+  if (!data || !data.active || data.role !== "shop" || !data.shop_id || !shop?.active || shop.name !== session.shop) return null;
+  return { session, profileId: data.id, shopId: data.shop_id, supabase };
+}

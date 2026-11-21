@@ -9,12 +9,14 @@ const sections = [
   { href: "/boutique/commande", titre: "Commander", sousTitre: "Créer la commande du jour", icone: "＋", couleur: "bg-[#111111] text-white" },
   { href: "/boutique/historique", titre: "Historique", sousTitre: "Voir les commandes passées", icone: "↺", couleur: "bg-[#f3f0e7] text-[#111111]" },
   { href: "/boutique/envoyer", titre: "Envoyer au dépôt", sousTitre: "Note, recommandation ou produit", icone: "↑", couleur: "bg-[#e9e4d7] text-[#111111]" },
-  { href: "/boutique/messages", titre: "Messages", sousTitre: "Écrire au dépôt", icone: "✉", couleur: "bg-white border-2 border-[#dedbd3] text-[#111111]", badge: "2" },
+  { href: "/boutique/messages", titre: "Messages", sousTitre: "Écrire au dépôt", icone: "✉", couleur: "bg-white border-2 border-[#dedbd3] text-[#111111]" },
 ];
 
 export default function BoutiqueHome() {
   const [shopName, setShopName] = useState("Boutique");
   const [sessionError, setSessionError] = useState("");
+  const [unread, setUnread] = useState(0);
+  const [notificationError, setNotificationError] = useState("");
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
       .then(async (response) => {
@@ -23,6 +25,22 @@ export default function BoutiqueHome() {
         setShopName(data.shopName || data.displayName);
       })
       .catch(() => setSessionError("Impossible de charger le nom de la boutique."));
+  }, []);
+  useEffect(() => {
+    let active = true;
+    const charger = async () => {
+      try {
+        const response = await fetch("/api/shop/messages/unread", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.erreur || "Impossible de charger les notifications.");
+        if (active) { setUnread(data.unread); setNotificationError(""); }
+      } catch {
+        if (active) setNotificationError("Impossible de vérifier les nouveaux messages.");
+      }
+    };
+    void charger();
+    const timer = window.setInterval(() => { void charger(); }, 15000);
+    return () => { active = false; window.clearInterval(timer); };
   }, []);
 
   return (
@@ -39,6 +57,7 @@ export default function BoutiqueHome() {
       </header>
       <div className="mx-auto max-w-6xl p-5 sm:p-8">
         {sessionError && <p role="alert" className="mb-5 rounded-xl bg-red-50 p-4 font-semibold text-red-800">{sessionError}</p>}
+        {notificationError && <p role="alert" className="mb-5 rounded-xl bg-amber-50 p-4 font-semibold text-amber-900">{notificationError}</p>}
         <div className="mb-6 flex items-end justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-wider text-[#a58b50]">Aujourd’hui</p>
@@ -48,7 +67,7 @@ export default function BoutiqueHome() {
         <section className="grid gap-5 sm:grid-cols-2">
           {sections.map((section) => (
             <Link key={section.href} href={section.href} className={`relative min-h-44 rounded-[28px] p-7 shadow-sm ${section.couleur}`}>
-              {section.badge && <span className="absolute right-5 top-5 flex h-9 min-w-9 items-center justify-center rounded-full bg-red-600 px-2 text-sm font-bold text-white">{section.badge}</span>}
+              {section.href === "/boutique/messages" && unread > 0 && <span className="absolute right-5 top-5 flex h-9 min-w-9 items-center justify-center rounded-full bg-red-600 px-2 text-sm font-bold text-white">{unread}</span>}
               <span className="text-4xl">{section.icone}</span>
               <h2 className="mt-8 text-2xl font-bold">{section.titre}</h2>
               <p className="mt-1 opacity-70">{section.sousTitre}</p>
