@@ -2,20 +2,37 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type AccountOption = { identifiant: string; nom: string };
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [identifiant, setIdentifiant] = useState("");
+  const [comptes, setComptes] = useState<AccountOption[]>([]);
+  const [chargementComptes, setChargementComptes] = useState(true);
   const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState("");
+
+  useEffect(() => {
+    fetch("/api/auth/accounts", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.erreur || "Impossible de charger les comptes.");
+        setComptes(data.accounts);
+      })
+      .catch((error: unknown) => {
+        setErreur(error instanceof Error ? error.message : "Impossible de charger les comptes.");
+      })
+      .finally(() => setChargementComptes(false));
+  }, []);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setErreur("");
     if (!identifiant || !motDePasse) {
-      setErreur("Veuillez renseigner votre identifiant et votre mot de passe.");
+      setErreur("Veuillez choisir un compte et saisir son mot de passe.");
       return;
     }
     const response = await fetch("/api/auth/login", {
@@ -49,13 +66,19 @@ export default function LoginPage() {
           <div className="mt-8 space-y-5">
             <label className="block">
               <span className="mb-2 block font-semibold">Identifiant</span>
-              <input
-                className="touch-target w-full rounded-2xl border-2 border-[#dedbd3] px-5 text-lg outline-none focus:border-[#111111]"
+              <select
+                className="touch-target w-full rounded-2xl border-2 border-[#dedbd3] bg-white px-5 text-lg outline-none focus:border-[#111111]"
                 value={identifiant}
                 onChange={(event) => setIdentifiant(event.target.value)}
                 autoComplete="username"
-                placeholder="Exemple : Kram"
-              />
+                required
+                disabled={chargementComptes}
+              >
+                <option value="" disabled>{chargementComptes ? "Chargement des comptes…" : "Choisir un compte"}</option>
+                {comptes.map((compte) => (
+                  <option key={compte.identifiant} value={compte.identifiant}>{compte.nom}</option>
+                ))}
+              </select>
             </label>
             <label className="block">
               <span className="mb-2 block font-semibold">Mot de passe</span>
@@ -78,7 +101,7 @@ export default function LoginPage() {
             </label>
           </div>
           {erreur && <p className="mt-5 rounded-xl bg-red-50 p-4 font-semibold text-red-700" role="alert">{erreur}</p>}
-          <button className="touch-target mt-7 w-full rounded-2xl bg-[#111111] px-6 text-lg font-bold text-white shadow-lg" type="submit">
+          <button disabled={chargementComptes || comptes.length === 0} className="touch-target mt-7 w-full rounded-2xl bg-[#111111] px-6 text-lg font-bold text-white shadow-lg disabled:opacity-50" type="submit">
             Se connecter
           </button>
         </form>
