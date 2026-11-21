@@ -13,10 +13,12 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.2.3",
     "jose": "^6.2.18",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "ws": "^8.23.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -25,6 +27,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.2",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",

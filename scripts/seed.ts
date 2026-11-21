@@ -1,6 +1,11 @@
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
 import catalogue from "../src/data/catalogue.json";
+import dotenv from "dotenv";
+import WebSocket from "ws";
+
+dotenv.config({ path: ".env.local" });
+(globalThis as unknown as { WebSocket: typeof WebSocket }).WebSocket = WebSocket;
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -60,3 +65,5 @@ async function seed() {
 }
 
 seed().catch((error) => { console.error(error); process.exit(1); });
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
