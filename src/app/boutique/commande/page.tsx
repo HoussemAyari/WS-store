@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import catalogueImporte from "@/data/catalogue.json";
 
@@ -8,6 +9,7 @@ const categories = ["Huiles de parfum", "Matières premières", "Flacons", "Vapo
 const articles = catalogueImporte;
 
 export default function CommandePage() {
+  const router = useRouter();
   const [categorie, setCategorie] = useState(categories[0]);
   const [recherche, setRecherche] = useState("");
   const [selection, setSelection] = useState<Record<number, number>>({});
@@ -62,7 +64,7 @@ export default function CommandePage() {
             <p className="mt-3 text-gray-600">Vous pourrez la modifier tant que le dépôt n’a pas commencé la préparation.</p>
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button onClick={() => setEnvoye(false)} className="touch-target rounded-2xl border-2 font-bold">Annuler</button>
-              <button onClick={() => { setEnvoye(false); window.location.href = "/boutique"; }} className="touch-target rounded-2xl bg-[#111111] font-bold text-white">Confirmer</button>
+              <button onClick={() => { setEnvoye(false); router.push("/boutique"); }} className="touch-target rounded-2xl bg-[#111111] font-bold text-white">Confirmer</button>
             </div>
           </div>
         </div>

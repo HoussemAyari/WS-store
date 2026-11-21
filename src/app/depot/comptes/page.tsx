@@ -29,8 +29,7 @@ export default function ComptesPage() {
   const [shopId, setShopId] = useState("");
   const [password, setPassword] = useState("");
 
-  const charger = useCallback(async () => {
-    setLoading(true);
+  const charger = useCallback(async (initial = false) => {
     setErreur("");
     try {
       const response = await fetch("/api/depot/accounts", { cache: "no-store" });
@@ -38,15 +37,35 @@ export default function ComptesPage() {
       if (!response.ok) throw new Error(data.erreur || "Impossible de charger les comptes.");
       setAccounts(data.accounts);
       setShops(data.shops);
-      if (!shopId && data.shops.length) setShopId(data.shops[0].id);
+      setShopId((current) => current || data.shops[0]?.id || "");
     } catch (error) {
       setErreur(error instanceof Error ? error.message : "Impossible de charger les comptes.");
     } finally {
-      setLoading(false);
+      if (initial) setLoading(false);
     }
-  }, [shopId]);
+  }, []);
 
-  useEffect(() => { void charger(); }, [charger]);
+  useEffect(() => {
+    let active = true;
+    async function initialiser() {
+      try {
+        const response = await fetch("/api/depot/accounts", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.erreur || "Impossible de charger les comptes.");
+        if (active) {
+          setAccounts(data.accounts);
+          setShops(data.shops);
+          setShopId((current) => current || data.shops[0]?.id || "");
+        }
+      } catch (error) {
+        if (active) setErreur(error instanceof Error ? error.message : "Impossible de charger les comptes.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void initialiser();
+    return () => { active = false; };
+  }, []);
 
   async function agir(body: Record<string, string | boolean | null>) {
     setErreur("");
