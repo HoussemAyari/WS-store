@@ -21,22 +21,39 @@ async function seed() {
     const { data, error } = await supabase.from("shops").upsert({ name }, { onConflict: "name" }).select("id").single();
     if (error) throw new Error(`Création de la boutique ${name} impossible : ${error.message}`);
     if (!data) throw new Error(`La boutique ${name} n’a pas été créée.`);
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      shop_id: data.id,
-      role: "shop",
-      login: name,
-      password_hash: await bcrypt.hash(seedPassword, 12),
-      display_name: name,
-    }, { onConflict: "login" });
+    const { data: existingProfile, error: lookupError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("login", name)
+      .maybeSingle();
+    if (lookupError) throw new Error(`Recherche du compte ${name} impossible : ${lookupError.message}`);
+    const profileValues = { shop_id: data.id, role: "shop" as const, display_name: name };
+    const profileResult = existingProfile
+      ? await supabase.from("profiles").update(profileValues).eq("id", existingProfile.id)
+      : await supabase.from("profiles").insert({
+          ...profileValues,
+          login: name,
+          password_hash: await bcrypt.hash(seedPassword, 12),
+        });
+    const profileError = profileResult.error;
     if (profileError) throw new Error(`Création du compte ${name} impossible : ${profileError.message}`);
   }
 
-  const { error: adminError } = await supabase.from("profiles").upsert({
-    role: "depot",
-    login: "depot",
-    password_hash: await bcrypt.hash(seedPassword, 12),
-    display_name: "Dépôt central",
-  }, { onConflict: "login" });
+  const { data: existingDepot, error: depotLookupError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("login", "depot")
+    .maybeSingle();
+  if (depotLookupError) throw new Error(`Recherche du compte dépôt impossible : ${depotLookupError.message}`);
+  const depotValues = { role: "depot" as const, shop_id: null, display_name: "Dépôt central" };
+  const depotResult = existingDepot
+    ? await supabase.from("profiles").update(depotValues).eq("id", existingDepot.id)
+    : await supabase.from("profiles").insert({
+        ...depotValues,
+        login: "depot",
+        password_hash: await bcrypt.hash(seedPassword, 12),
+      });
+  const adminError = depotResult.error;
   if (adminError) throw new Error(`Création du compte dépôt impossible : ${adminError.message}`);
 
   const categories = ["Huiles de parfum", "Matières premières", "Flacons", "Vaporisateurs", "Capuchons / Bouchons", "Autres"];

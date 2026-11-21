@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (process.env.NODE_ENV === "production" && (!url || !key)) {
+  if (process.env.NODE_ENV === "production" && (!url || !key || !process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
     return NextResponse.json(
       { erreur: "Le service de connexion n’est pas encore configuré." },
       { status: 503 }
@@ -57,18 +57,5 @@ export async function POST(request: Request) {
     return response;
   }
 
-  const demoShop = ["Kram", "Rue des Salines", "Djerba"].find(
-    (name) => name.toLowerCase() === parsed.data.identifiant.toLowerCase()
-  );
-  const depot = parsed.data.identifiant.toLowerCase().includes("depot");
-  if (!demoShop && !depot) {
-    return NextResponse.json({ erreur: "Identifiant inconnu." }, { status: 401 });
-  }
-
-  const role = depot ? "depot" : "shop";
-  const shop = depot ? "Dépôt central" : parsed.data.identifiant;
-  const token = await createSession({ role, shop });
-  const response = NextResponse.json({ role, redirect: role === "depot" ? "/depot" : "/boutique" });
-  response.cookies.set("ws_session", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 31536000, path: "/" });
-  return response;
+  return NextResponse.json({ erreur: "Le service de connexion n’est pas configuré." }, { status: 503 });
 }

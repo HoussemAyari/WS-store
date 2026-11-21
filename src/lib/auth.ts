@@ -7,7 +7,11 @@ export type SessionPayload = {
 };
 
 function secret() {
-  return new TextEncoder().encode(process.env.SESSION_SECRET || "ws-supply-demonstration-secret-change-in-production");
+  const value = process.env.SESSION_SECRET;
+  if (!value || value.length < 32) {
+    throw new Error("SESSION_SECRET doit contenir au moins 32 caractères.");
+  }
+  return new TextEncoder().encode(value);
 }
 
 export async function createSession(payload: SessionPayload) {
