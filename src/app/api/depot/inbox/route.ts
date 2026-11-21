@@ -7,13 +7,16 @@ export async function GET() {
   try {
     const auth = await getActiveDepotProfile();
     if (!auth) return NextResponse.json({ erreur: "Accès réservé au dépôt." }, { status: 403 });
-    const [{ data: submissions, error: submissionsError }, { data: threads, error: threadsError }] = await Promise.all([
+    const [{ data: submissions, error: submissionsError }, { data: threads, error: threadsError }, { data: shops, error: shopsError }] = await Promise.all([
       auth.supabase.from("submissions").select("id,type,description,customer_name,status,created_at,shops(name)").order("created_at", { ascending: false }),
       auth.supabase.from("message_threads").select("id,subject,unread_depot,updated_at,shops(name),messages(id,sender_role,body,created_at)").order("updated_at", { ascending: false }),
+      auth.supabase.from("shops").select("id,name").eq("active", true).order("name"),
     ]);
     if (submissionsError) throw submissionsError;
     if (threadsError) throw threadsError;
+    if (shopsError) throw shopsError;
     return NextResponse.json({
+      shops: shops ?? [],
       submissions: (submissions ?? []).map((submission) => ({
         ...submission,
         shopName: (submission.shops as unknown as { name: string } | null)?.name ?? "Boutique",

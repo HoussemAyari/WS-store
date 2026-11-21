@@ -14,14 +14,18 @@ type Submission = {
 };
 type ThreadMessage = { id: string; sender_role: "shop" | "depot"; body: string; created_at: string };
 type Thread = { id: string; subject: string | null; unread_depot: boolean; updated_at: string; shopName: string; messages: ThreadMessage[] };
+type Shop = { id: string; name: string };
 const types: Record<string, string> = { note: "Note", recommandation: "Recommandation", produit_client: "Produit pour un client", produit_stock: "Produit pour le stock" };
 const statuts: Record<Submission["status"], string> = { nouveau: "Nouveau", en_cours: "En cours", traite: "Traité" };
 
 export default function InboxPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [threads, setThreads] = useState<Thread[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
   const [selected, setSelected] = useState("");
   const [reply, setReply] = useState("");
+  const [recipientShop, setRecipientShop] = useState("");
+  const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [erreur, setErreur] = useState("");
@@ -34,6 +38,7 @@ export default function InboxPage() {
     if (!response.ok) throw new Error(data.erreur || "Impossible de charger la boîte de réception.");
     setSubmissions(data.submissions);
     setThreads(data.threads);
+    setShops(data.shops);
   }, []);
 
   useEffect(() => {
@@ -42,7 +47,7 @@ export default function InboxPage() {
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.erreur || "Impossible de charger la boîte de réception.");
-        if (active) { setSubmissions(data.submissions); setThreads(data.threads); }
+        if (active) { setSubmissions(data.submissions); setThreads(data.threads); setShops(data.shops); }
       })
       .catch((error: unknown) => { if (active) setErreur(error instanceof Error ? error.message : "Impossible de charger la boîte de réception."); })
       .finally(() => { if (active) setLoading(false); });
@@ -94,6 +99,29 @@ export default function InboxPage() {
     } finally { setBusy(""); }
   }
 
+  async function envoyerNouveauMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!recipientShop || !newMessage.trim()) return;
+    setBusy("nouveau-message");
+    setErreur("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/depot/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId: recipientShop, body: newMessage.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.erreur || "Le message n’a pas pu être envoyé.");
+      setSelected(data.threadId);
+      setNewMessage("");
+      setMessage("Message envoyé à la boutique.");
+      await charger();
+    } catch (error) {
+      setErreur(error instanceof Error ? error.message : "Le message n’a pas pu être envoyé.");
+    } finally { setBusy(""); }
+  }
+
   return (
     <main className="min-h-screen bg-[#f7f6f2] p-5 sm:p-8">
       <Link href="/depot" className="touch-target inline-flex items-center rounded-xl border bg-white px-4 font-bold">‹ Retour</Link>
@@ -106,7 +134,14 @@ export default function InboxPage() {
           {entry.customer_name && <p className="mt-3 font-semibold">Client : {entry.customer_name}</p>}<p className="mt-3 whitespace-pre-wrap">{entry.description}</p>
           {entry.status !== "traite" && <button disabled={busy === entry.id} onClick={() => void changerStatut(entry)} className="touch-target mt-4 w-full rounded-xl bg-[#111111] font-bold text-white disabled:opacity-50">{busy === entry.id ? "Mise à jour…" : entry.status === "nouveau" ? "Prendre en charge" : "Marquer comme traité"}</button>}
         </article>)}</div>}</section>
-        <section><h2 className="mb-3 text-xl font-bold">Conversations</h2>{threads.length === 0 ? <p className="rounded-2xl bg-white p-5 text-gray-600">Aucun message reçu.</p> : <div className="space-y-3">{threads.map((thread) => {
+        <section><h2 className="mb-3 text-xl font-bold">Conversations avec les boutiques</h2>
+          <form onSubmit={envoyerNouveauMessage} className="mb-4 space-y-3 rounded-[24px] bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-bold">Envoyer un nouveau message</h3>
+            <label className="block"><span className="mb-2 block font-semibold">Boutique destinataire</span><select required value={recipientShop} onChange={(event) => setRecipientShop(event.target.value)} className="touch-target w-full rounded-xl border-2 bg-white px-3"><option value="" disabled>Choisir une boutique</option>{shops.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label className="block"><span className="mb-2 block font-semibold">Message</span><textarea required value={newMessage} onChange={(event) => setNewMessage(event.target.value)} maxLength={2000} rows={3} className="w-full rounded-xl border-2 p-3" placeholder="Écrire un message à cette boutique…" /></label>
+            <button disabled={!recipientShop || !newMessage.trim() || busy === "nouveau-message"} className="touch-target w-full rounded-xl bg-[#111111] font-bold text-white disabled:opacity-50">{busy === "nouveau-message" ? "Envoi…" : "Envoyer à la boutique"}</button>
+          </form>
+          {threads.length === 0 ? <p className="rounded-2xl bg-white p-5 text-gray-600">Aucune conversation existante. Vous pouvez envoyer le premier message ci-dessus.</p> : <div className="space-y-3">{threads.map((thread) => {
           const last = [...thread.messages].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
           return <button key={thread.id} onClick={() => void ouvrirConversation(thread)} className={`touch-target h-auto min-h-20 w-full rounded-2xl border-2 bg-white p-4 text-left ${selected === thread.id ? "border-[#111111]" : "border-transparent"}`}>
             <span className="flex items-center justify-between gap-2 font-bold">{thread.shopName}{thread.unread_depot && <span className="rounded-full bg-red-100 px-3 py-1 text-sm text-red-800">Nouveau</span>}</span><span className="mt-1 block text-sm text-gray-600">{last?.body ?? thread.subject ?? "Nouvelle conversation"}</span>

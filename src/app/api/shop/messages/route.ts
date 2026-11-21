@@ -8,6 +8,8 @@ async function getOrCreateThread(auth: NonNullable<Awaited<ReturnType<typeof get
     .select("id")
     .eq("shop_id", auth.shopId)
     .is("order_id", null)
+    .order("updated_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (error) throw error;
   if (existing) return existing.id;
