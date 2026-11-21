@@ -18,28 +18,31 @@ async function seed() {
   if (!seedPassword) throw new Error("Définissez SEED_PASSWORD avant d’exécuter le seed.");
   const shops = ["Kram", "Rue des Salines", "Djerba"];
   for (const name of shops) {
-    const { data } = await supabase.from("shops").upsert({ name }, { onConflict: "name" }).select("id").single();
-    if (data) {
-      await supabase.from("profiles").upsert({
-        shop_id: data.id,
-        role: "shop",
-        login: name,
-        password_hash: await bcrypt.hash(seedPassword, 12),
-        display_name: name,
-      }, { onConflict: "login" });
-    }
+    const { data, error } = await supabase.from("shops").upsert({ name }, { onConflict: "name" }).select("id").single();
+    if (error) throw new Error(`Création de la boutique ${name} impossible : ${error.message}`);
+    if (!data) throw new Error(`La boutique ${name} n’a pas été créée.`);
+    const { error: profileError } = await supabase.from("profiles").upsert({
+      shop_id: data.id,
+      role: "shop",
+      login: name,
+      password_hash: await bcrypt.hash(seedPassword, 12),
+      display_name: name,
+    }, { onConflict: "login" });
+    if (profileError) throw new Error(`Création du compte ${name} impossible : ${profileError.message}`);
   }
 
-  await supabase.from("profiles").upsert({
+  const { error: adminError } = await supabase.from("profiles").upsert({
     role: "depot",
     login: "depot",
     password_hash: await bcrypt.hash(seedPassword, 12),
     display_name: "Dépôt central",
   }, { onConflict: "login" });
+  if (adminError) throw new Error(`Création du compte dépôt impossible : ${adminError.message}`);
 
   const categories = ["Huiles de parfum", "Matières premières", "Flacons", "Vaporisateurs", "Capuchons / Bouchons", "Autres"];
   for (let position = 0; position < categories.length; position++) {
-    await supabase.from("catalog_categories").upsert({ name: categories[position], position, active: true }, { onConflict: "name" });
+    const { error } = await supabase.from("catalog_categories").upsert({ name: categories[position], position, active: true }, { onConflict: "name" });
+    if (error) throw new Error(`Création de la catégorie ${categories[position]} impossible : ${error.message}`);
   }
   for (const article of catalogue) {
     const { data: category } = await supabase
@@ -47,18 +50,18 @@ async function seed() {
       .select("id")
       .eq("name", article.categorie)
       .single();
-    if (category) {
-      await supabase.from("catalog_items").upsert(
-        {
-          category_id: category.id,
-          name: article.nom,
-          unit: article.avecQuantite ? "unités" : "sélection",
-          active: true,
-          position: article.id,
-        },
-        { onConflict: "name" }
-      );
-    }
+    if (!category) throw new Error(`Catégorie introuvable pour l’article ${article.nom}.`);
+    const { error } = await supabase.from("catalog_items").upsert(
+      {
+        category_id: category.id,
+        name: article.nom,
+        unit: article.avecQuantite ? "unités" : "sélection",
+        active: true,
+        position: article.id,
+      },
+      { onConflict: "name" }
+    );
+    if (error) throw new Error(`Import de l’article ${article.nom} impossible : ${error.message}`);
   }
   console.log("Boutiques, comptes administrateur et catégories créés.");
   console.log(`${catalogue.length} articles du CSV ont été ajoutés au catalogue.`);

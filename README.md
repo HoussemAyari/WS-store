@@ -13,7 +13,7 @@ Application Next.js App Router pour les approvisionnements quotidiens de Wael Sc
 7. Lancez `npm run seed` pour créer les boutiques, les comptes initiaux, les catégories et les 445 articles du CSV.
 8. Lancez `npm run dev`, puis ouvrez `http://localhost:3000`.
 
-Les comptes initiaux sont `Kram`, `Rue des Salines`, `Djerba` et `depot`. Leur mot de passe de démonstration est défini par le script de seed et doit être changé dès la mise en production.
+Les comptes initiaux sont `Kram`, `Rue des Salines`, `Djerba` et `depot`. Ils utilisent tous la valeur de `SEED_PASSWORD`. Choisissez un mot de passe fort, communiquez-le séparément aux responsables puis changez-le après la première connexion.
 
 ## Variables importantes
 
