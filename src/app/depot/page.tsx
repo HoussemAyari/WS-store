@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LogoutButton } from "@/components/logout-button";
 
 const shops = [
   { nom: "Kram", statut: "En préparation", articles: 14, couleur: "border-[#b79a5a]" },
@@ -15,7 +16,7 @@ export default function DepotDashboard() {
         <div><p className="text-sm text-gray-500">Dépôt central</p><h1 className="text-xl font-bold">Aujourd’hui</h1></div>
         <nav className="flex gap-2">
           <Link href="/depot/inbox" className="touch-target flex items-center rounded-xl border px-4 font-bold">Boîte de réception</Link>
-          <Link href="/" className="touch-target flex items-center rounded-xl border px-4 font-bold">Quitter</Link>
+          <LogoutButton />
         </nav>
       </header>
       <div className="p-5 sm:p-8">

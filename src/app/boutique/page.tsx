@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { LogoutButton } from "@/components/logout-button";
 
 const sections = [
   { href: "/boutique/commande", titre: "Commander", sousTitre: "Créer la commande du jour", icone: "＋", couleur: "bg-[#111111] text-white" },
@@ -11,6 +13,18 @@ const sections = [
 ];
 
 export default function BoutiqueHome() {
+  const [shopName, setShopName] = useState("Boutique");
+  const [sessionError, setSessionError] = useState("");
+  useEffect(() => {
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Session indisponible.");
+        const data = await response.json();
+        setShopName(data.shopName || data.displayName);
+      })
+      .catch(() => setSessionError("Impossible de charger le nom de la boutique."));
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#f7f6f2]">
       <header className="flex min-h-20 items-center justify-between border-b border-[#e5e2da] bg-white px-5 sm:px-8">
@@ -18,12 +32,13 @@ export default function BoutiqueHome() {
           <Image src="/wael-scents-logo.png" alt="" width={120} height={67} />
           <div>
             <p className="text-sm text-gray-500">Boutique</p>
-            <p className="text-lg font-bold">Kram</p>
+            <p className="text-lg font-bold">{shopName}</p>
           </div>
         </div>
-        <Link href="/" className="touch-target flex items-center rounded-xl border px-4 font-semibold">Quitter</Link>
+        <LogoutButton />
       </header>
       <div className="mx-auto max-w-6xl p-5 sm:p-8">
+        {sessionError && <p role="alert" className="mb-5 rounded-xl bg-red-50 p-4 font-semibold text-red-800">{sessionError}</p>}
         <div className="mb-6 flex items-end justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-wider text-[#a58b50]">Aujourd’hui</p>
